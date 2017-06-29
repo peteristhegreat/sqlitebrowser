@@ -27,7 +27,7 @@ addons:
       name: "sqlitebrowser/sqlitebrowser"
       description: "DB4S"
     notification_email: mkleusberg@gmail.com
-    build_command_prepend: "mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_TESTING=ON .."
+    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-5.4 --template;mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_TESTING=ON .."
     build_command:   "make"
     branch_pattern: coverity_scan
 
