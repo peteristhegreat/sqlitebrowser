@@ -2,66 +2,34 @@ language: cpp
 sudo: required
 dist: trusty
 
-matrix:
-  fast_finish: true
-  include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      env: COMPILER=g++-5 CXX=g++-5
-    - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.8
-          packages:
-            - clang-3.8
-      env: COMPILER=clang++-3.8
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "prSAtsBHMML0TgCZqDh3SmHMAZsWNCdDdFmAFyZKR3OlSDfqnnfTuBwBy7OR9XEXUE5MAUPJrj3MFq9jT1yswt9sv2Ptm9zTu099HxMlpuW/SfOUsZIwUiVpChQGNK5yUjKAqJHv8HCosUIgy6nE2UzzitBQfvGZEzv9nRbBMCQ="
 
 before_install:
+  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
   - sudo add-apt-repository ppa:likemartinma/devel -y
   - sudo add-apt-repository --yes ppa:beineri/opt-qt571-trusty
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
   - sudo apt-get --force-yes install qt57-meta-full
-  - sudo apt-get --force-yes install libsqlite3-dev libsqlcipher-dev libantlr-dev
+  - sudo apt-get --force-yes install libsqlite3-dev libantlr-dev
+  - sudo apt-get --force-yes install g++-5
   - QT_ENV_SCRIPT=$(find /opt -name 'qt*-env.sh')
   - source $QT_ENV_SCRIPT
+  - export CXX="g++-5" CC="gcc-5"
 
-install:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-3.8" CC="clang-3.8"; fi
-
-script:
-  - mkdir build
-  - mkdir build_cipher
-  - cd build
-  - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_TESTING=ON ..
-  - make
-  - ctest -V
-  - cd ../build_cipher
-  - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_TESTING=ON -Dsqlcipher=1 ..
-  - make
-  - ctest -V
-  - # AppImage generation
-  - cd ../build
-  - sudo apt-get -y install checkinstall
-  - sudo checkinstall --pkgname=app --pkgversion="1" --pkgrelease="1" --backup=no --fstrans=no --default --deldoc 
-  - mkdir appdir ; cd appdir
-  - dpkg -x ../app_1-1_amd64.deb . ; find .
-  - cp ./usr/share/applications/sqlitebrowser.desktop .
-  - cp ./usr/share/icons/hicolor/256x256/apps/sqlitebrowser.png .
-  - cd .. 
-  - wget -c "https://github.com/probonopd/linuxdeployqt/releases/download/3/linuxdeployqt-3-x86_64.AppImage" 
-  - chmod a+x linuxdeployqt*.AppImage
-  - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/sqlitebrowser -bundle-non-qt-libs
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/sqlitebrowser -appimage 
-  - curl --upload-file ./DB*.AppImage https://transfer.sh/sqlitebrowser-git.$(git rev-parse --short HEAD)-x86_64.AppImage 
+addons:
+  coverity_scan:
+    project:
+      name: "sqlitebrowser/sqlitebrowser"
+      description: "DB4S"
+    notification_email: mkleusberg@gmail.com
+    build_command_prepend: "mkdir build; cd build; cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_TESTING=ON .."
+    build_command:   "make"
+    branch_pattern: coverity_scan
 
 notifications:
   email:
